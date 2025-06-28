@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Ride Accepted (Driver)</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <style>
+      .ack-card {
+        background: linear-gradient(135deg, #e0ffe7 0%, #f0fff4 100%);
+        border-radius: 16px;
+        box-shadow: 0 4px 24px rgba(56, 142, 60, 0.08);
+        padding: 32px 28px 24px 28px;
+        margin: 60px auto 24px auto;
+        border: 1.5px solid #b6ffcc;
+        max-width: 420px;
+        animation: fadeIn 0.7s;
+      }
+      .ack-card h2 {
+        color: #388e3c;
+        margin-bottom: 18px;
+        font-size: 1.5em;
+        letter-spacing: 0.5px;
+        text-align: center;
+      }
+      .ack-info-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        font-size: 1.08em;
+      }
+      .ack-info-label {
+        color: #374151;
+        font-weight: 500;
+      }
+      .ack-info-value {
+        color: #1b5e20;
+        font-weight: 600;
+      }
+      .passenger-info {
+        background: #e8f5e9;
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin: 18px 0 10px 0;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ack-card">
+      <h2>🚗 Ride Accepted!</h2>
+      {% if ride %}
+      <div class="ack-info-row">
+        <span class="ack-info-label">From:</span>
+        <span class="ack-info-value">{{ ride.start }}</span>
+      </div>
+      <div class="ack-info-row">
+        <span class="ack-info-label">To:</span>
+        <span class="ack-info-value">{{ ride.destination }}</span>
+      </div>
+      <div class="ack-info-row">
+        <span class="ack-info-label">Estimated Price:</span>
+        <span class="ack-info-value">₹{{ ride.estimatedPrice }}</span>
+      </div>
+      <div class="ack-info-row">
+        <span class="ack-info-label">Time to Destination:</span>
+        <span class="ack-info-value">{{ ride.timeToDestination }} min</span>
+      </div>
+
+      {% if ride.passengerInfo %}
+      <div class="passenger-info">
+        <div class="ack-info-row">
+          <span class="ack-info-label">Passenger:</span>
+          <span class="ack-info-value">{{ ride.passengerInfo.username }}</span>
+        </div>
+        <div class="ack-info-row">
+          <span class="ack-info-label">Email:</span>
+          <span class="ack-info-value">{{ ride.passengerInfo.email }}</span>
+        </div>
+        <!-- <div class="ack-info-row">
+          <span class="ack-info-label">ETA for Pickup:</span>
+          <span class="ack-info-value">{{ ride.driverInfo.eta }} min</span>
+        </div> -->
+      </div>
+      {% endif %} {% endif %}
+      <p style="text-align: center; margin-top: 24px; color: #388e3c">
+        You have accepted the ride. Please proceed to the pickup location.
+      </p>
+      <div
+        id="eta-countdown"
+        style="
+          text-align: center;
+          margin-top: 18px;
+          font-size: 1.2em;
+          color: #388e3c;
+        "
+      ></div>
+      <div id="start-ride-form" style="display: none">
+        <form
+          method="post"
+          action="/start_ride"
+          style="margin-top: 18px; text-align: center"
+        >
+          <input type="hidden" name="rideId" value="{{ ride.rideId }}" />
+          <button
+            type="submit"
+            class="start-btn"
+            style="
+              background: #388e3c;
+              color: #fff;
+              border: none;
+              border-radius: 6px;
+              padding: 10px 24px;
+              font-size: 1em;
+              cursor: pointer;
+            "
+          >
+            Start Ride
+          </button>
+        </form>
+      </div>
+      <script>
+        // ETA countdown logic
+        let etaSeconds = 5; // 2 minutes
+        const countdownDiv = document.getElementById("eta-countdown");
+        const startRideForm = document.getElementById("start-ride-form");
+        function updateCountdown() {
+          if (etaSeconds > 0) {
+            const min = Math.floor(etaSeconds / 60);
+            const sec = etaSeconds % 60;
+            countdownDiv.textContent = `ETA to pickup: ${min}:${sec
+              .toString()
+              .padStart(2, "0")}`;
+            etaSeconds--;
+          } else {
+            countdownDiv.textContent = "You have reached the pickup location!";
+            startRideForm.style.display = "block";
+            clearInterval(timerInterval);
+          }
+        }
+        updateCountdown();
+        const timerInterval = setInterval(updateCountdown, 1000);
+      </script>
+      <a
+        href="/logout"
+        style="display: block; text-align: center; margin-top: 32px"
+        >Logout</a
+      >
+    </div>
+    <script>
+      // Poll ride status every 3 seconds
+      const rideId = "{{ ride.rideId }}";
+      function pollRideStatus() {
+        fetch(`/get_ride_status?rideId=${rideId}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.status === "CANCELLED") {
+              window.location.href = "/driver_home";
+            }
+          })
+          .catch(() => {});
+      }
+      setInterval(pollRideStatus, 3000);
+    </script>
+  </body>
+</html>

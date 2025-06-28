@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Passenger Home</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+      body {
+        background: linear-gradient(120deg, #e0f7fa 0%, #f1f8e9 100%);
+        min-height: 100vh;
+        margin: 0;
+        font-family: "Segoe UI", "Roboto", Arial, sans-serif;
+      }
+      .container {
+        max-width: 700px;
+        margin: 40px auto 0 auto;
+        background: #fff;
+        border-radius: 18px;
+        box-shadow: 0 8px 32px rgba(44, 62, 80, 0.13);
+        padding: 36px 36px 28px 36px;
+        animation: fadeInCard 0.8s;
+      }
+      @keyframes fadeInCard {
+        from {
+          opacity: 0;
+          transform: translateY(40px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      h2 {
+        color: #00796b;
+        text-align: center;
+        margin-bottom: 28px;
+        font-size: 2.1em;
+        letter-spacing: 0.5px;
+      }
+      #map {
+        height: 380px;
+        width: 100%;
+        margin-bottom: 18px;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(44, 62, 80, 0.09);
+        animation: popInMap 0.7s;
+      }
+      @keyframes popInMap {
+        from {
+          opacity: 0;
+          transform: scale(0.96);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      .map-label {
+        font-weight: 600;
+        margin-bottom: 7px;
+        color: #388e3c;
+        font-size: 1.1em;
+      }
+      #map-instructions {
+        margin-bottom: 14px;
+        color: #388e3c;
+        font-size: 1.04em;
+        text-align: center;
+        background: #e0f2f1;
+        border-radius: 7px;
+        padding: 7px 0;
+        box-shadow: 0 1px 4px rgba(56, 142, 60, 0.07);
+      }
+      .leaflet-container {
+        border-radius: 12px;
+      }
+      button[type="submit"] {
+        width: 100%;
+        background: linear-gradient(90deg, #43e97b 0%, #38f9d7 100%);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 14px 0;
+        font-size: 1.18em;
+        font-weight: 600;
+        margin-top: 10px;
+        box-shadow: 0 2px 8px rgba(67, 233, 123, 0.13);
+        cursor: pointer;
+        transition: background 0.18s, transform 0.13s;
+        letter-spacing: 0.5px;
+      }
+      button[type="submit"]:hover {
+        background: linear-gradient(90deg, #38f9d7 0%, #43e97b 100%);
+        transform: translateY(-2px) scale(1.03);
+        box-shadow: 0 4px 16px rgba(67, 233, 123, 0.18);
+      }
+      a {
+        display: block;
+        text-align: center;
+        margin-top: 22px;
+        color: #00796b;
+        font-weight: 500;
+        text-decoration: none;
+        transition: color 0.15s;
+      }
+      a:hover {
+        color: #004d40;
+        text-decoration: underline;
+      }
+      p {
+        text-align: center;
+        color: #d84315;
+        font-size: 1.08em;
+        margin-top: 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Welcome, {{ username if username else 'User' }}!</h2>
+      <form id="rideForm" method="POST" action="/create_ride">
+        <div class="map-label">Select Start and Destination:</div>
+        <div id="map"></div>
+        <input type="hidden" name="start" id="start" required />
+        <input type="hidden" name="destination" id="destination" required />
+        <div id="map-instructions">
+          Click on the map to set <b>Start</b> (green marker), then
+          <b>Destination</b> (red marker).
+        </div>
+        <button type="submit">Request Ride</button>
+      </form>
+      <a href="/logout">Logout</a>
+    </div>
+    {% if message %}
+    <p>{{ message }}</p>
+    {% endif %}
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+      var map = L.map("map").setView([19.147631, 72.929518], 17); // Mumbai default
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 100,
+        attribution: "© OpenStreetMap",
+      }).addTo(map);
+      var startMarker = null,
+        destMarker = null;
+      map.on("click", function (e) {
+        if (!startMarker) {
+          startMarker = L.marker(e.latlng, {
+            icon: L.icon({
+              iconUrl:
+                "https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers@master/img/marker-icon-green.png",
+              iconSize: [25, 41],
+              iconAnchor: [12, 41],
+            }),
+            bounceOnAdd: true,
+          })
+            .addTo(map)
+            .bindPopup("Start")
+            .openPopup();
+          document.getElementById("start").value =
+            e.latlng.lat + "," + e.latlng.lng;
+          document.getElementById("map-instructions").innerHTML =
+            "Now click to set <b>Destination</b> (red marker).";
+        } else if (!destMarker) {
+          destMarker = L.marker(e.latlng, {
+            icon: L.icon({
+              iconUrl:
+                "https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers@master/img/marker-icon-red.png",
+              iconSize: [25, 41],
+              iconAnchor: [12, 41],
+            }),
+            bounceOnAdd: true,
+          })
+            .addTo(map)
+            .bindPopup("Destination")
+            .openPopup();
+          document.getElementById("destination").value =
+            e.latlng.lat + "," + e.latlng.lng;
+          document.getElementById("map-instructions").innerHTML =
+            "Ready! You can submit the ride request.";
+        }
+      });
+      document
+        .getElementById("rideForm")
+        .addEventListener("submit", function (e) {
+          if (!startMarker || !destMarker) {
+            alert("Please select both start and destination on the map.");
+            e.preventDefault();
+          }
+        });
+    </script>
+  </body>
+</html>

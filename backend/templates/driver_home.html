@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Driver Home</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <style>
+      body {
+        font-family: "Segoe UI", Arial, sans-serif;
+        background: #f6f8fa;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        max-width: 480px;
+        margin: 60px auto;
+        background: #fff;
+        border-radius: 18px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.09);
+        padding: 36px 32px;
+      }
+      h2 {
+        color: #1a73e8;
+        margin-bottom: 18px;
+        text-align: center;
+      }
+      .ride-details-card {
+        background: linear-gradient(135deg, #e0e7ff 0%, #f0f4ff 100%);
+        border-radius: 16px;
+        box-shadow: 0 4px 24px rgba(0, 123, 255, 0.08);
+        padding: 28px 24px 20px 24px;
+        margin: 32px 0 24px 0;
+        border: 1.5px solid #b6d0ff;
+        max-width: 420px;
+        margin-left: auto;
+        margin-right: auto;
+        animation: fadeIn 0.7s;
+      }
+      .ride-details-card h3 {
+        color: #1a237e;
+        margin-bottom: 18px;
+        font-size: 1.3em;
+        letter-spacing: 0.5px;
+      }
+      .ride-info-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        font-size: 1.08em;
+      }
+      .ride-info-label {
+        color: #374151;
+        font-weight: 500;
+      }
+      .ride-info-value {
+        color: #0d47a1;
+        font-weight: 600;
+      }
+      .accept-btn {
+        width: 100%;
+        margin-top: 18px;
+        padding: 12px 0;
+        font-size: 1.1em;
+        background: linear-gradient(90deg, #1a73e8 60%, #0056b3 100%);
+        border: none;
+        border-radius: 8px;
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0, 123, 255, 0.08);
+        transition: background 0.2s;
+      }
+      .accept-btn:hover {
+        background: linear-gradient(90deg, #0056b3 60%, #1a73e8 100%);
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .no-rides {
+        text-align: center;
+        color: #888;
+        margin-top: 40px;
+        font-size: 1.1em;
+      }
+      .logout-link {
+        display: block;
+        text-align: center;
+        margin-top: 32px;
+        color: #1a73e8;
+        text-decoration: none;
+        font-weight: 500;
+      }
+      .logout-link:hover {
+        text-decoration: underline;
+      }
+    </style>
+    <script>
+      async function pollForRide() {
+        try {
+          const res = await fetch("/get_ride");
+          if (res.ok) {
+            const data = await res.json();
+            if (data.ride && data.ride.status === "REQUESTED") {
+              // If a ride is available and not already shown, reload to show it
+              if (
+                !document.querySelector(".ride-details-card") ||
+                document
+                  .querySelector(".ride-details-card")
+                  .getAttribute("data-ride-id") !== data.ride.rideId
+              ) {
+                window.location.reload();
+              }
+            } else if (!data.ride) {
+              // If no ride, reload to clear the UI
+              if (document.querySelector(".ride-details-card")) {
+                window.location.reload();
+              }
+            }
+          }
+        } catch (e) {}
+        setTimeout(pollForRide, 2500);
+      }
+      document.addEventListener("DOMContentLoaded", pollForRide);
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Welcome, {{ username if username else 'User' }}!</h2>
+      {% if ride %}
+      <div class="ride-details-card" data-ride-id="{{ ride.rideId }}">
+        <h3>🚗 New Ride Request</h3>
+        <div class="ride-info-row">
+          <span class="ride-info-label">From:</span>
+          <span class="ride-info-value">{{ ride.start }}</span>
+        </div>
+        <div class="ride-info-row">
+          <span class="ride-info-label">To:</span>
+          <span class="ride-info-value">{{ ride.destination }}</span>
+        </div>
+        <div class="ride-info-row">
+          <span class="ride-info-label">Estimated Price:</span>
+          <span class="ride-info-value">₹{{ ride.estimatedPrice }}</span>
+        </div>
+        <div class="ride-info-row">
+          <span class="ride-info-label">Time to Destination:</span>
+          <span class="ride-info-value">{{ ride.timeToDestination }} min</span>
+        </div>
+        <form method="POST" action="/accept_ride">
+          <input type="hidden" name="rideId" value="{{ ride.rideId }}" />
+          <input
+            type="hidden"
+            name="driverId"
+            value="{{ session['user_id'] }}"
+          />
+          <button class="accept-btn" type="submit">Accept Ride</button>
+        </form>
+      </div>
+      {% else %}
+      <div class="no-rides">No rides available at the moment.</div>
+      {% endif %}
+      <a href="/logout" class="logout-link">Logout</a>
+    </div>
+  </body>
+</html>

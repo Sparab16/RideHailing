@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Sign Up</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <script>
+      function toggleCarInfo() {
+        const userType = document.querySelector(
+          'select[name="user_type"]'
+        ).value;
+        const carInfo = document.getElementById("car-info-fields");
+        if (userType === "driver") {
+          carInfo.style.display = "block";
+          // Set required attributes
+          document.getElementById("car_model").required = true;
+          document.getElementById("car_number").required = true;
+          document.getElementById("car_color").required = true;
+        } else {
+          carInfo.style.display = "none";
+          // Remove required attributes
+          document.getElementById("car_model").required = false;
+          document.getElementById("car_number").required = false;
+          document.getElementById("car_color").required = false;
+        }
+      }
+      document.addEventListener("DOMContentLoaded", function () {
+        document
+          .querySelector('select[name="user_type"]')
+          .addEventListener("change", toggleCarInfo);
+        toggleCarInfo(); // Set initial state
+      });
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Sign Up</h2>
+      <form method="POST" action="/signup">
+        <label>Email:</label><input type="email" name="email" required />
+        <label>Username:</label><input type="text" name="username" required />
+        <label>Password:</label
+        ><input type="password" name="password" required />
+        <label>User Type:</label>
+        <select name="user_type">
+          <option value="passenger">Passenger</option>
+          <option value="driver">Driver</option>
+        </select>
+        <div id="car-info-fields" style="display: none; margin-top: 10px">
+          <label>Car Model:</label>
+          <input type="text" name="car_model" id="car_model" />
+          <label>Car Number:</label>
+          <input type="text" name="car_number" id="car_number" />
+          <label>Car Color:</label>
+          <input type="text" name="car_color" id="car_color" />
+        </div>
+        <button type="submit">Sign Up</button>
+      </form>
+      <p>Already have an account? <a href="/login">Login</a></p>
+    </div>
+  </body>
+</html>

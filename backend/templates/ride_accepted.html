@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Ride Accepted</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <style>
+      .ack-card {
+        background: linear-gradient(135deg, #e0ffe7 0%, #f0fff4 100%);
+        border-radius: 16px;
+        box-shadow: 0 4px 24px rgba(56, 142, 60, 0.08);
+        padding: 32px 28px 24px 28px;
+        margin: 60px auto 24px auto;
+        border: 1.5px solid #b6ffcc;
+        max-width: 420px;
+        animation: fadeIn 0.7s;
+      }
+      .ack-card h2 {
+        color: #388e3c;
+        margin-bottom: 18px;
+        font-size: 1.5em;
+        letter-spacing: 0.5px;
+        text-align: center;
+      }
+      .ack-info-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        font-size: 1.08em;
+      }
+      .ack-info-label {
+        color: #374151;
+        font-weight: 500;
+      }
+      .ack-info-value {
+        color: #1b5e20;
+        font-weight: 600;
+      }
+      .driver-info {
+        background: #e8f5e9;
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin: 18px 0 10px 0;
+      }
+      .cancel-btn {
+        background: #ff5252;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 10px 24px;
+        font-size: 1em;
+        margin: 18px auto 0 auto;
+        display: block;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      .cancel-btn:hover {
+        background: #d32f2f;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ack-card">
+      <h2>✅ Ride Accepted!</h2>
+      {% if ride %}
+      <div class="ack-info-row">
+        <span class="ack-info-label">From:</span>
+        <span class="ack-info-value">{{ ride.start }}</span>
+      </div>
+      <div class="ack-info-row">
+        <span class="ack-info-label">To:</span>
+        <span class="ack-info-value">{{ ride.destination }}</span>
+      </div>
+      <div class="ack-info-row">
+        <span class="ack-info-label">Estimated Price:</span>
+        <span class="ack-info-value">₹{{ ride.estimatedPrice }}</span>
+      </div>
+      <div class="ack-info-row">
+        <span class="ack-info-label">Time to Destination:</span>
+        <span class="ack-info-value">{{ ride.timeToDestination }} min</span>
+      </div>
+      <div class="driver-info">
+        <div class="ack-info-row">
+          <span class="ack-info-label">Driver:</span>
+          <span class="ack-info-value">{{ ride.driverInfo.username }}</span>
+        </div>
+        <div class="ack-info-row">
+          <span class="ack-info-label">Email:</span>
+          <span class="ack-info-value">{{ ride.driverInfo.email }}</span>
+        </div>
+        <!-- <div class="ack-info-row">
+          <span class="ack-info-label">ETA for Pickup:</span>
+          <span class="ack-info-value">{{ ride.driverInfo.eta }} min</span>
+        </div> -->
+        {% if ride.driverInfo.car_model or ride.driverInfo.car_number or
+        ride.driverInfo.car_color %}
+        <div class="ack-info-row">
+          <span class="ack-info-label">Car Model:</span>
+          <span class="ack-info-value"
+            >{{ ride.driverInfo.car_model or 'N/A' }}</span
+          >
+        </div>
+        <div class="ack-info-row">
+          <span class="ack-info-label">Car Number:</span>
+          <span class="ack-info-value"
+            >{{ ride.driverInfo.car_number or 'N/A' }}</span
+          >
+        </div>
+        <div class="ack-info-row">
+          <span class="ack-info-label">Car Color:</span>
+          <span class="ack-info-value"
+            >{{ ride.driverInfo.car_color or 'N/A' }}</span
+          >
+        </div>
+        {% endif %}
+      </div>
+      {% endif %} {% if session['user_type'] == 'passenger' %}
+      <form method="post" action="/cancel_ride" style="margin-top: 18px">
+        <input type="hidden" name="rideId" value="{{ ride.rideId }}" />
+        <button type="submit" class="cancel-btn">Cancel Ride</button>
+      </form>
+      <p
+        id="ride-status-msg"
+        style="text-align: center; margin-top: 24px; color: #388e3c"
+      >
+        Your ride is now confirmed. Please get ready!
+      </p>
+      <a
+        href="/logout"
+        style="display: block; text-align: center; margin-top: 32px"
+        >Logout</a
+      >
+      <script>
+        // Poll for ride status in case driver starts the ride
+        function pollRideStarted() {
+          fetch(
+            "{{ url_for('common_routes.get_ride_status', ride_id=ride['rideId']) }}"
+          )
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.status === "ONGOING") {
+                window.location.href =
+                  "{{ url_for('passenger_routes.ongoing_ride', ride_id=ride['rideId']) }}";
+              }
+            });
+        }
+        setInterval(pollRideStarted, 1000); // Poll every 3 seconds
+      </script>
+      {% endif %}
+    </div>
+  </body>
+</html>

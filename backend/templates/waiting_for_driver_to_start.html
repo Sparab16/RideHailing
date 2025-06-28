@@ -1,0 +1,58 @@
+<!-- Waiting for Driver to Start Ride (Passenger) -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Waiting for Driver</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <style>
+      body {
+        font-family: "Segoe UI", Arial, sans-serif;
+        background: #f6f8fa;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        max-width: 420px;
+        margin: 60px auto;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+        padding: 32px 28px;
+        text-align: center;
+      }
+      h2 {
+        color: #1a73e8;
+        margin-bottom: 12px;
+      }
+      .waiting {
+        color: #888;
+        font-size: 1.2em;
+        margin-top: 24px;
+      }
+    </style>
+    <script>
+      function pollRideStatus() {
+        fetch(
+          "{{ url_for('common_routes.ride_status', ride_id=ride['rideId']) }}"
+        )
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.status === "started") {
+              window.location.href =
+                "{{ url_for('common_routes.ongoing_ride_passenger', ride_id=ride['rideId']) }}";
+            }
+          });
+      }
+      setInterval(pollRideStatus, 3000); // Poll every 3 seconds
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Waiting for Driver</h2>
+      <div class="waiting">
+        Your driver has not started the ride yet. Please wait...
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,310 @@
+<!-- Ongoing Ride - Driver Perspective -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Ongoing Ride (Driver)</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <style>
+      body {
+        font-family: "Segoe UI", Arial, sans-serif;
+        background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+      }
+      .container {
+        max-width: 440px;
+        margin: 60px auto;
+        background: #fff;
+        border-radius: 20px;
+        box-shadow: 0 8px 32px rgba(26, 115, 232, 0.1),
+          0 1.5px 8px rgba(230, 126, 34, 0.08);
+        padding: 38px 32px 32px 32px;
+        position: relative;
+        overflow: hidden;
+      }
+      .container::before {
+        content: "";
+        position: absolute;
+        top: -60px;
+        right: -60px;
+        width: 180px;
+        height: 180px;
+        background: radial-gradient(circle, #1a73e8 0%, #e0eafc 80%);
+        opacity: 0.12;
+        z-index: 0;
+        border-radius: 50%;
+      }
+      h2 {
+        color: #1a73e8;
+        margin-bottom: 18px;
+        font-size: 2.1em;
+        letter-spacing: 1px;
+        text-align: center;
+        font-weight: 700;
+      }
+      .info {
+        font-size: 1.15em;
+        margin-bottom: 22px;
+        color: #333;
+        text-align: center;
+        background: #f3f8ff;
+        border-radius: 8px;
+        padding: 10px 0 8px 0;
+        font-weight: 500;
+        box-shadow: 0 1px 4px rgba(26, 115, 232, 0.04);
+      }
+      .timer {
+        font-size: 2.6em;
+        color: #e67e22;
+        margin-bottom: 24px;
+        font-weight: 700;
+        text-align: center;
+        letter-spacing: 2px;
+        text-shadow: 0 2px 8px #f6e3d3;
+      }
+      .progress-bar {
+        width: 100%;
+        height: 10px;
+        background: #f3f8ff;
+        border-radius: 6px;
+        margin-bottom: 18px;
+        overflow: hidden;
+      }
+      .progress {
+        height: 100%;
+        background: linear-gradient(90deg, #1a73e8 0%, #e67e22 100%);
+        border-radius: 6px;
+        transition: width 1s linear;
+      }
+      .btn-main {
+        background: linear-gradient(90deg, #1a73e8 60%, #e67e22 100%);
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        padding: 14px 0;
+        font-size: 1.15em;
+        cursor: pointer;
+        transition: background 0.2s, box-shadow 0.2s;
+        display: block;
+        margin: 0 auto;
+        width: 100%;
+        font-weight: 600;
+        box-shadow: 0 2px 8px rgba(26, 115, 232, 0.08);
+        letter-spacing: 1px;
+      }
+      .btn-main:disabled {
+        background: #b3d1f7;
+        cursor: not-allowed;
+      }
+      #end-ride-btn {
+        display: none;
+      }
+      .ride-icon {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 18px;
+      }
+      .ride-icon svg {
+        width: 54px;
+        height: 54px;
+        fill: #1a73e8;
+        filter: drop-shadow(0 2px 8px #b3d1f7);
+      }
+    </style>
+    <script>
+      let seconds = 5;
+      function startCountdown() {
+        const timer = document.getElementById("timer");
+        const endBtn = document.getElementById("end-ride-btn");
+        const progress = document.getElementById("progress");
+        const arrivedMsg = document.getElementById("arrived-msg");
+        const rideId = "{{ ride['rideId'] }}";
+        function updateTimer() {
+          if (seconds > 0) {
+            seconds--;
+            timer.textContent = seconds + "s";
+            progress.style.width = (seconds / 120) * 100 + "%";
+          } else {
+            clearInterval(interval);
+            timer.textContent = "0s";
+            if (arrivedMsg) arrivedMsg.style.display = "block";
+            if (endBtn) endBtn.style.display = "block";
+            progress.style.width = "0%";
+            // Show the payment request button after timer ends
+            const paymentBtn = document.getElementById("payment-request-btn");
+            if (paymentBtn) paymentBtn.style.display = "block";
+          }
+        }
+        timer.textContent = seconds + "s";
+        progress.style.width = "100%";
+        const interval = setInterval(updateTimer, 1000);
+      }
+      window.onload = function () {
+        startCountdown();
+      };
+      function requestPayment(e) {
+        e.preventDefault();
+        const rideId = document.getElementById("rideIdInput").value;
+        fetch("{{ url_for('driver_routes.request_payment') }}", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-Requested-With": "XMLHttpRequest",
+          },
+          body: `rideId=${encodeURIComponent(rideId)}`,
+        })
+          .then((res) => {
+            if (res.ok) {
+              document.getElementById("payment-request-btn").style.display =
+                "none";
+              document.getElementById("payment-status").style.display = "block";
+              pollPaymentStatus();
+            }
+          })
+          .catch(() => {});
+      }
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <div class="ride-icon">
+        <svg viewBox="0 0 64 64">
+          <circle cx="32" cy="32" r="30" fill="#fff" />
+          <rect x="14" y="32" width="36" height="14" rx="7" fill="#1a73e8" />
+          <rect x="20" y="20" width="24" height="16" rx="8" fill="#e67e22" />
+          <circle cx="22" cy="48" r="4" fill="#fff" />
+          <circle cx="42" cy="48" r="4" fill="#fff" />
+        </svg>
+      </div>
+      <h2>Ride in Progress</h2>
+      <div class="info">Destination: <b>{{ ride['destination'] }}</b></div>
+      <div
+        class="timer-label"
+        style="
+          text-align: center;
+          color: #888;
+          font-size: 1.05em;
+          margin-bottom: 2px;
+        "
+      >
+        Estimated time to destination
+      </div>
+      <div class="timer" id="timer"></div>
+      <div
+        id="arrived-msg"
+        style="
+          display: none;
+          text-align: center;
+          color: #1a73e8;
+          font-weight: 600;
+          margin-bottom: 18px;
+          font-size: 1.1em;
+        "
+      >
+        You are at your destination!
+      </div>
+      <div class="progress-bar"><div class="progress" id="progress"></div></div>
+      <form id="payment-request-form" onsubmit="requestPayment(event)">
+        <input
+          type="hidden"
+          name="rideId"
+          id="rideIdInput"
+          value="{{ ride['rideId'] }}"
+        />
+        <button
+          id="payment-request-btn"
+          class="btn-main"
+          type="submit"
+          style="display: none"
+        >
+          Request Payment
+        </button>
+      </form>
+      <div
+        id="payment-status"
+        style="
+          display: none;
+          text-align: center;
+          color: #e67e22;
+          font-weight: 600;
+          margin-top: 18px;
+          font-size: 1.1em;
+        "
+      >
+        Waiting for passenger to pay...
+      </div>
+      <div
+        id="payment-done-msg"
+        style="
+          display: none;
+          text-align: center;
+          color: #27ae60;
+          font-weight: 700;
+          margin-top: 18px;
+          font-size: 1.2em;
+        "
+      >
+        Payment received! Ride complete.
+        <button
+          id="end-ride-btn"
+          class="btn-main"
+          style="display: none; margin-top: 18px"
+          onclick="endRide(event)"
+        >
+          End Ride
+        </button>
+      </div>
+    </div>
+    <script>
+      document
+        .getElementById("payment-request-form")
+        .addEventListener("submit", function (e) {
+          setTimeout(function () {
+            document.getElementById("payment-request-btn").style.display =
+              "none";
+            document.getElementById("payment-status").style.display = "block";
+            pollPaymentStatus();
+          }, 200); // slight delay to allow form submit
+        });
+
+      function pollPaymentStatus() {
+        const rideId = "{{ ride['rideId'] }}";
+        let interval = setInterval(function () {
+          fetch(`/get_ride_status?rideId=${rideId}`)
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.status === "PAYMENT_DONE") {
+                clearInterval(interval);
+                document.getElementById("payment-status").style.display =
+                  "none";
+                document.getElementById("payment-done-msg").style.display =
+                  "block";
+                document.getElementById("end-ride-btn").style.display = "block";
+              }
+            })
+            .catch(() => {});
+        }, 3000); // poll every 3 seconds
+      }
+      function endRide(e) {
+        e.preventDefault();
+        const rideId = document.getElementById("rideIdInput").value;
+        fetch("{{ url_for('driver_routes.end_ride') }}", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-Requested-With": "XMLHttpRequest",
+          },
+          body: `rideId=${encodeURIComponent(rideId)}`,
+        })
+          .then((res) => {
+            if (res.ok) {
+              window.location.href = "/driver_home";
+            }
+          })
+          .catch(() => {});
+      }
+    </script>
+  </body>
+</html>

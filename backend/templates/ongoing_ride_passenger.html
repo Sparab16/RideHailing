@@ -1,0 +1,200 @@
+<!-- Ongoing Ride - Passenger Perspective (No Map, No Progress Bar) -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Ongoing Ride (Passenger)</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <style>
+      body {
+        font-family: "Segoe UI", Arial, sans-serif;
+        background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+      }
+      .container {
+        max-width: 440px;
+        margin: 60px auto;
+        background: #fff;
+        border-radius: 20px;
+        box-shadow: 0 8px 32px rgba(26, 115, 232, 0.1),
+          0 1.5px 8px rgba(230, 126, 34, 0.08);
+        padding: 38px 32px 32px 32px;
+        position: relative;
+        overflow: hidden;
+      }
+      .container::before {
+        content: "";
+        position: absolute;
+        top: -60px;
+        right: -60px;
+        width: 180px;
+        height: 180px;
+        background: radial-gradient(circle, #1a73e8 0%, #e0eafc 80%);
+        opacity: 0.12;
+        z-index: 0;
+        border-radius: 50%;
+      }
+      h2 {
+        color: #1a73e8;
+        margin-bottom: 18px;
+        font-size: 2.1em;
+        letter-spacing: 1px;
+        text-align: center;
+        font-weight: 700;
+      }
+      .info {
+        font-size: 1.15em;
+        margin-bottom: 22px;
+        color: #333;
+        text-align: center;
+        background: #f3f8ff;
+        border-radius: 8px;
+        padding: 10px 0 8px 0;
+        font-weight: 500;
+        box-shadow: 0 1px 4px rgba(26, 115, 232, 0.04);
+      }
+      .timer-label {
+        text-align: center;
+        color: #888;
+        font-size: 1.05em;
+        margin-bottom: 2px;
+      }
+      .waiting {
+        color: #888;
+        font-size: 1.1em;
+        text-align: center;
+        margin-top: 10px;
+        transition: color 0.3s, font-weight 0.3s;
+      }
+      .btn-main {
+        background: #1a73e8;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 0;
+        font-size: 1.1em;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+        width: 100%;
+      }
+      .btn-main:hover {
+        background: #155ab6;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="ride-icon">
+        <svg viewBox="0 0 64 64">
+          <circle cx="32" cy="32" r="30" fill="#fff" />
+          <rect x="14" y="32" width="36" height="14" rx="7" fill="#1a73e8" />
+          <rect x="20" y="20" width="24" height="16" rx="8" fill="#e67e22" />
+          <circle cx="22" cy="48" r="4" fill="#fff" />
+          <circle cx="42" cy="48" r="4" fill="#fff" />
+        </svg>
+      </div>
+      <h2>Ride in Progress</h2>
+      <div class="info">Destination: <b>{{ ride['destination'] }}</b></div>
+      <div class="info">
+        Driver: <b>{{ ride['driverInfo']['username'] }}</b> | Vehicle:
+        <b>{{ ride['driverInfo']['car_model'] }}</b> | Plate:
+        <b>{{ ride['driverInfo']['car_number'] }}</b>
+      </div>
+
+      <div class="info">
+        <span class="timer-label">Estimated Price</span>
+        <span id="estimated-price" style="font-weight: 600; color: #27ae60">
+          ₹ {{ ride['estimatedPrice'] }}
+        </span>
+      </div>
+      <div class="waiting" id="waiting-msg">
+        Waiting for driver to end the ride...
+      </div>
+      <div
+        id="pay-section"
+        style="display: none; text-align: center; margin-top: 24px"
+      >
+        <h3 style="color: #1a73e8; margin-bottom: 12px">Ready to Pay</h3>
+        <p style="margin-bottom: 18px; color: #333">
+          Your ride has ended. Please proceed to payment.
+        </p>
+        <form
+          id="pay-form"
+          method="post"
+          action="{{ url_for('passenger_routes.complete_payment') }}"
+          style="max-width: 320px; margin: 0 auto"
+        >
+          <div style="margin-bottom: 18px">
+            <label
+              for="estimatedPrice"
+              style="
+                display: block;
+                color: #888;
+                font-size: 1em;
+                margin-bottom: 4px;
+                text-align: left;
+              "
+            >
+              Amount to Pay
+            </label>
+            <input
+              type="text"
+              id="estimatedPrice"
+              name="estimatedPrice"
+              value="{{ ride['estimatedPrice'] }}"
+              readonly
+              disabled
+              style="
+                width: 100%;
+                font-size: 1.3em;
+                color: #27ae60;
+                font-weight: 600;
+                background: #f3f8ff;
+                border: none;
+                border-radius: 6px;
+                padding: 10px 0;
+                text-align: center;
+                letter-spacing: 1px;
+              "
+            />
+          </div>
+          <input type="hidden" name="rideId" value="{{ ride['rideId'] }}" />
+          <button class="btn-main" type="submit">Pay Now</button>
+        </form>
+      </div>
+    </div>
+    <script>
+      function showPaySection() {
+        document.getElementById("pay-section").style.display = "block";
+        document.getElementById("waiting-msg").style.display = "none";
+      }
+      document.addEventListener("DOMContentLoaded", function () {
+        function pollRideStatus() {
+          fetch(
+            "{{ url_for('common_routes.get_ride_status', ride_id=ride['rideId']) }}"
+          )
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error("Network response was not ok");
+              }
+              return response.json();
+            })
+            .then((data) => {
+              if (data.status === "PAYMENT_REQUESTED") {
+                showPaySection();
+              }
+            })
+            .catch((error) => {
+              console.error("Error fetching ride status:", error);
+            });
+        }
+        setInterval(pollRideStatus, 3000);
+        // Run once immediately so user doesn't have to wait 3s
+        pollRideStatus();
+      });
+    </script>
+  </body>
+</html>
