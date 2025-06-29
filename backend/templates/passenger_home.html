@@ -137,7 +137,10 @@
     {% endif %}
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
-      var map = L.map("map").setView([19.147631, 72.929518], 17); // Mumbai default
+      var map = L.map("map").setView(
+        [19.09870425510593, 72.83360320533225],
+        17
+      ); // Mumbai default
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 100,
         attribution: "© OpenStreetMap",
